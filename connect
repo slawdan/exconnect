@@ -1,0 +1,103 @@
+#!/usr/bin/expect -f
+
+set curfile $argv0
+set curname [file tail $curfile]
+set curdir [file dirname $curfile]
+set svrlstfn "${curfile}.servers"
+
+source "${curdir}/common.tcl"
+
+makeFile $svrlstfn "server matching" "#Line format:
+#user@host\[:pass\]\[#tag1#...#tagN#\]
+example_user1@example.com:pass1#example#
+example_user2@192.168.1.1#gateway#lgw#
+example_user3@192.168.1.2
+"
+
+if { $argc == 0 } {
+	send "Usage:\n"
+	send "    $curname \[\$server|\$server_postfix|\$server_tag\]\n"
+	send_user "============= Servers ============\n"
+	send "User@Server:Pass#Tag#...\n"
+	send_user -- "-------------------------\n"
+	set svrlst [open $svrlstfn "r"]
+	while 1 {
+		if {[gets $svrlst chars] == -1} break
+		regsub -all ":.*(?=$|#)" $chars ":***" filtered
+		send_user $filtered
+		send_user "\n"
+	}
+        close $svrlst
+	exit 
+}
+
+set sshbin [findSSH]
+
+send_user "Using ssh: $sshbin\n"
+
+set svrlst [open $svrlstfn "r"]
+
+set svr [lindex $argv 0]
+
+regsub -all "\\.| " $svr "\\." svrp
+set svrp "${svrp}(\$|:|#)|#$svrp#"
+
+set svrm [matchInFile $svrlstfn $svrp]
+
+if { $svrm != "" } {
+	lassign [split $svrm "@:#"] user host pass
+	send "Match ${user}@${host}\n"
+} else {
+	send "Input match none, use input: ${svr}\n"
+	send "Or check your servers list: $svrlstfn\n"
+	set host $svr
+	set user ""
+	set pass ""
+}
+
+set sret 0
+
+if { $user != "" } {
+	set sret [spawn $sshbin $user@$host]
+} else {
+	set sret [spawn $sshbin $host]
+}
+
+if {$sret==0} {
+	send -- "spawn failed"
+	exit
+}
+
+set i 0
+while { $i < 10 } {
+	expect {
+		-re "ssh:" {
+			break
+		}
+		-re "continue connecting \(yes\/no\)\?" {
+			send -- "yes\n"
+		}
+		-re "password" {
+			if { $pass != "" } {
+				send -- "${pass}\n"
+			}
+			break
+		}
+		-re "#" {
+			break	
+		}
+		-re "\\$" {
+			break	
+		}
+		-re "~" {
+			break	
+		}
+		-re "Last login:" {
+			break
+		}
+		eof {}
+	}
+	incr i
+}
+
+interactWithFastQuit

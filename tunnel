@@ -1,0 +1,177 @@
+#!/usr/bin/expect -f
+# @Author: Rodin <luodan@staff.sina.com.cn>
+# @Version: $Id$
+# @Location: $HeadURL$
+
+
+set curfile $argv0
+set curname [file tail $curfile]
+set curdir [file dirname $curfile]
+set tunlstfn "${curfile}.tunnels"
+set svrlstfn "${curfile}.servers"
+
+source "${curdir}/common.tcl"
+
+
+makeFile $tunlstfn "tunnels matching" "#Line format:
+#\[Alias\]:User@Server\[:Password\]
+tunnel1:user1@example_tunnel1:password
+:user2@example_tunnel2:password
+:user3@example_tunnel3
+"
+
+makeFile $svrlstfn "server matching" "#Line format:
+#Server\[:Tunnel_Alias\]\[#Tag1#...#TagN#\]
+server1.com:tunnel1#svr1#svr2#
+10.1.1.5:tunnel1#svr3#
+"
+
+set sshbin [findSSH]
+
+proc show_help { curname } {
+	send_user "This script accept 0 to 2 params. If you omit the \$server, it will use the first server in servers list. If you omit the \$tunnel_alias, it will try to use the predefined alias in servers list if not empty, then try the first tunnel in tunnels list\n"
+	send_user "Examples:\n"
+	send_user "  $curname \[\$server|\$tag\]\n"
+	send_user "  $curname \$tunnel_alias \[\$server|\$tag\]\n"
+	send_user "  $curname \n"
+}
+
+send [exec date "+%Y-%m-%d %H:%M:%S"]
+send "\nToday is a gift. That's why it is called the present."
+send "\n=====================================================\n"
+if { $argc == 0 } {
+	show_help $curname
+
+	send_user "========== Tunnels =========\n"
+	send_user "Alias:User@Tunnel:Password\n"
+	send_user -- "------------------\n"
+        set tunlst [open $tunlstfn "r"]
+	while 1 {
+		if {[gets $tunlst chars] == -1} break
+		send_user $chars
+		send_user "\n"
+	}
+        close $tunlst
+
+	send_user "========== Servers =========\n"
+	send_user "Server:Tunnel#Tag#\n"
+	send_user -- "------------------\n"
+        set svrlst [open $svrlstfn "r"]
+	while 1 {
+		if {[gets $svrlst chars] == -1} break
+		send_user $chars
+		send_user "\n"
+	}
+        close $svrlst
+	exit
+} elseif {$argc > 2} {
+	show_help $curname
+	exit
+}
+set timeout -1
+
+set target ""
+set tunnel ""
+
+if { $argc == 1 } {
+	set target [lindex $argv 0]
+} elseif { $argc == 2 } {
+	set tunnel [lindex $argv 0]
+	set target [lindex $argv 1]
+}
+
+# search target
+regsub -all "\\.| " $target "\\." svrp
+set svrp "${svrp}(:|$)|#${svrp}#"
+set target [matchInFile $svrlstfn $svrp]
+
+if { $target != "" } {
+	lassign [split $target ":#"] target tunnel_default
+}
+# search target end
+
+# find tunnel by alias
+	if { $tunnel == ""} {
+		set tunnel $tunnel_default
+	}
+
+	set tunp "^$tunnel:"
+	set tun_a ""
+	set tun ""
+
+	set tun [matchInFile $tunlstfn $tunp]
+
+	if { $tun != "" } {
+		#set sparts [split $tun "@:"]
+		#set user [lindex $sparts 1]
+		#set host [lindex $sparts 2]
+		#set pass [lindex $sparts 3]
+		lassign [split $tun "@:"] tun_a user host pass
+		if { $tun_a == "" } {
+			set tun_a "default"
+		}
+	} else {
+		send_user "Tunnel alias match none!\n"
+		send_user "Tip: \n"
+		send_user "   You can use the default tunnel defined in servers list ($svrlstfn)"
+		send_user " by omit the tunnel name.\n"
+
+		show_help
+		exit
+	}
+
+# found tunnel
+
+send_user "connecting to \"$target\" via \"$tun_a\"($user@$host)\n"
+
+# connect and auto login
+set sret [spawn $sshbin $user@$host]
+
+if {$sret==0} {
+	send_user "spawn tunnel connection failed"
+	exit
+}
+
+expect {
+	-re "continue connecting \(yes\/no\)\?" {
+		send -- "yes\n"
+		exp_continue
+	}
+	-re "password" {
+		if { $pass != "" } {
+			send -- "${pass}\n"
+			exp_continue
+		} else {
+			#break
+		}
+	}
+	-re "'q' to exit \\):" {
+		if { $target != "" } {
+			send -- "$target\n"
+		} else {
+			interact
+			exit
+		}
+		#break
+	}
+}
+
+expect {
+	-re "'q' to exit" {
+		send_user "\n==============================================\n"
+		send_user "\nLogin to $target FAILED. Check your SERVER IP and TUNNEL please.\n"
+		exit
+	}
+	-re "ssh:|#|\\$|~|Last login:|" {
+		#break
+	}
+	-re "denied" {
+		send_user "\n==============================================\n"
+		send_user "\nLogin to $target FAILED. Check your PERMISSIONS please.\n"
+		exit
+	}
+	eof {}
+}
+# auto login finish
+
+interactWithFastQuit
