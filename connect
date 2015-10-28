@@ -18,12 +18,12 @@ if { $argc == 0 } {
 	send "Usage:\n"
 	send "    $curname \[\$server|\$server_postfix|\$server_tag\]\n"
 	send_user "============= Servers ============\n"
-	send "User@Server:Pass#Tag#...\n"
+	send "User@Server:Pass#Tags#\n"
 	send_user -- "-------------------------\n"
 	set svrlst [open $svrlstfn "r"]
 	while 1 {
 		if {[gets $svrlst chars] == -1} break
-		regsub -all ":.*(?=$|#)" $chars ":***" filtered
+		regsub -all ":\[^#\]+(?=$|#)" $chars ":***" filtered
 		send_user $filtered
 		send_user "\n"
 	}

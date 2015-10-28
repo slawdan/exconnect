@@ -14,9 +14,9 @@ source "${curdir}/common.tcl"
 
 
 makeFile $tunlstfn "tunnels matching" "#Line format:
-#\[Alias\]:User@Server\[:Password\]
+#Alias:User@Server\[:Password\]
 tunnel1:user1@example_tunnel1:password
-tunnel2:user2@example_tunnel2:password
+tunnel2:user2@example_tunnel2
 "
 
 makeFile $svrlstfn "server matching" "#Line format:

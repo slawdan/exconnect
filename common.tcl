@@ -42,8 +42,9 @@ proc matchInFile {fn pat} {
 proc interactWithFastQuit {} {
 	interact {
 		!!! {
+			send_error "\[User fast quit...\]"
 			set i 0
-				send "exit\n"
+			send "exit\n"
 			while { $i < 10 } {
 				expect {
 					"'q' to exit" {
@@ -53,11 +54,8 @@ proc interactWithFastQuit {} {
 					-re "\#|\\$" {
 						send "exit\n"
 					}
-					"closed\\." {
-						break
-					}
 					eof {
-						break
+						return
 					}
 				}
 				incr i
