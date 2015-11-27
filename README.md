@@ -6,8 +6,9 @@ A SSH auxiliary script for login to server.
  - quick connect server by tag
  - send password automaticly
  - login to the tunnel/fort/jump server.
+ - `zssh` will be used if detected, or else will fallback to `ssh`
 
-It has two script, use `connect` to connect remote server by tag and send password, and use `tunnel` if you need login to a tunnel server first.
+This project has two script, use `connect` to connect remote server by tag and send password, and use `tunnel` if you need login to a tunnel server first.
 
 ## Usage
 
