@@ -1,7 +1,7 @@
 exconnect
 ===========
 
-A auxiliary script for ssh to server.
+A SSH auxiliary script for login to server.
 
  - quick connect server by tag
  - send password automaticly
