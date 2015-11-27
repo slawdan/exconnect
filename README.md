@@ -16,14 +16,14 @@ It has two script, use `connect` to connect remote server by tag and send passwo
 `expect` installed. You can use brew:
 
 ```
-    brew install expect`
+brew install expect
 ```
 
-### Install
+### Quick Start
 
  1. Download and unzip.
- 2. `./connect` (or `./tunnel`) to auto init config file.
- 3. Change the config file (aka. `connect.servers`) as you wish.
+ 2. `./connect` (or `./tunnel`) to auto initialize config file(s).
+ 3. Change the config file(s) (aka. `connect.servers`) as you wish.
  4. `./connect foo` to connect the server with tag `foo`.
 
 ### Basic Usage
@@ -68,16 +68,9 @@ To connect `example_user2@192.168.1.1`:
 ./connect 192.168.1.1
 ./connect bar
 ```
+Note that `./connect foo` will match the first server.
 
-> Note `./connect foo` will matching the first server.
-
-```
-./connect 2
-./connect .2
-./connect 1.2
-```
-
-Remember, put your servers to the `connect.servers`.
+Also remember, config your servers into `connect.servers`.
 
 ### Basic Config Format
 
