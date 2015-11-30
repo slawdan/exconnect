@@ -146,9 +146,9 @@ expect {
 	}
 	-re "'q' to exit \\):" {
 		if { $target != "" } {
-			send -- "$target\n"
+			send "$target\n"
 		} else {
-			interact
+			interactWithFastQuit
 			exit
 		}
 		#break
@@ -156,12 +156,13 @@ expect {
 }
 
 expect {
-	-re "'q' to exit" {
+	-re "'q' to exit \\):" {
+		send "q\n"
 		send_user "\n==============================================\n"
 		send_user "\nLogin to $target FAILED. Check your SERVER IP and TUNNEL please.\n"
 		exit
 	}
-	-re "ssh:|#|\\$|~|Last login:|" {
+	-re "ssh:|#|\\$|~|Last login:" {
 		#break
 	}
 	-re "denied" {
